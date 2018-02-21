@@ -8,6 +8,10 @@ class Main:
 
 	data_helper = None
 	data = {}
+	factors = {}
+	factors_by_year = {}
+	femail_factor = None
+	relaction_male_vs_female = None
 
 	def __init__(self, country='Russian Federation', years=None):
 		if years is None:
@@ -28,6 +32,22 @@ class Main:
 			self.data = self.data_helper.read_xls()
 			self.data_helper.xls_to_csv(self.data)
 
+	def detect_factors(self):
+		log.info('Detect of factors...')
+		self.factors = {}
+
+	def detect_femail_factor(self):
+		log.info('Detect of femail factor...')
+		self.femail_factor = None
+
+	def detect_relation_male_vs_female(self):
+		log.info('Detect a relation birthday between male and femail...')
+		self.relaction_male_vs_female = None
+
+	def split_factors_by_year(self):
+		log.info('Translate factors by a year step...')
+		self.factors_by_year = {}
+
 
 if __name__ == '__main__':
 
@@ -36,5 +56,6 @@ if __name__ == '__main__':
 
 	main = Main()
 	main.read_data()
+	main.identify_factors()
 
 	sys.exit()
