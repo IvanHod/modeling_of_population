@@ -56,6 +56,7 @@ if __name__ == '__main__':
 
 	main = Main()
 	main.read_data()
-	main.identify_factors()
+
+	main.detect_factors()
 
 	sys.exit()
