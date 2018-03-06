@@ -82,7 +82,15 @@ class Main:
 
 	def split_factors_by_year(self):
 		log.info('Translate factors by a year step...')
-		self.factors_by_year = {}
+		factors_by_year = {}
+		for interval in self.factors:
+			times = list(map(lambda v: int(v), interval.split('-')))
+			count = times[1] - times[0] + 1
+			factor = self.factors[interval] / count
+			for year in range(times[0], times[0] + count):
+				factors_by_year[year] = factor
+
+		print(factors_by_year)
 
 
 if __name__ == '__main__':
@@ -95,5 +103,7 @@ if __name__ == '__main__':
 
 	main.detect_factors()
 	main.detect_female_factor()
+
+	main.split_factors_by_year()
 
 	sys.exit()
