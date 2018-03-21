@@ -130,7 +130,7 @@ class Main:
 		last_year = self.years[-1]
 		for_prediction = self.data[last_year]
 		female_factor = self.female_factor['general']
-		delimiter = 5
+		delimiter = 1
 		for num in range(1, 101, 1):
 			childs = female_factor * self.get_number_middle_female(for_prediction, delimiter)
 			new_data = {'0-4': {
@@ -151,7 +151,6 @@ class Main:
 				data_by_year[last_year].append(value)
 
 			for_prediction = new_data
-			delimiter = 1
 
 		self.data_helper.write_to_xls(titles, data, data_by_year)
 
