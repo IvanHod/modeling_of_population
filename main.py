@@ -64,11 +64,13 @@ class Main:
 
 		self.detect_relation_male_vs_female()
 
-	def get_number_middle_female(self, year):
+	def get_number_middle_female(self, year, delimiter=None):
 		count_woman = 0
 		for rn in range(20, 40, 5):
 			interval = '{}-{}'.format(rn, rn + 4)
 			count_woman += year[interval]['female']
+		if delimiter:
+			count_woman /= delimiter
 		return count_woman
 
 	def detect_relation_male_vs_female(self):
@@ -93,7 +95,7 @@ class Main:
 		self.female_factor_by_year = math.pow(self.female_factor['general'], 0.2)
 
 	def calculate_prediction(self):
-		titles = ['year'] + list(sorted(self.factors.keys(), key=lambda k: int(k.split('-')[0])))
+		titles = ['year'] + list(sorted(self.factors.keys(), key=lambda k: int(k.split('-')[0]))) + ['100+']
 		data = {}
 		data_by_year = {}
 		for year in self.data:
@@ -116,17 +118,21 @@ class Main:
 			data[last_year] = [int(childs)]
 			for interval in sorted(self.factors, key=lambda k: int(k.split('-')[0])):
 				number = for_prediction[interval]
-				next_year = self.next_interval(interval)
-				new_data[next_year] = {'male': number['male'], 'female': number['female']}
+				next_interval = self.next_interval(interval)
+				new_data[next_interval] = {
+					'male': number['male'] * self.factors[interval],
+					'female': number['female'] * self.factors[interval]
+				}
 				data[last_year].append(int((number['male'] + number['female']) * self.factors[interval]))
 
 			for_prediction = new_data
 
 		last_year = self.years[-1]
 		for_prediction = self.data[last_year]
-		female_factor = self.female_factor['general'] / 5
+		female_factor = self.female_factor['general']
+		delimiter = 5
 		for num in range(1, 101, 1):
-			childs = female_factor * self.get_number_middle_female(for_prediction)
+			childs = female_factor * self.get_number_middle_female(for_prediction, delimiter)
 			new_data = {'0-4': {
 				'male': childs * self.female_factor['male'],
 				'female': childs * self.female_factor['female']
@@ -136,10 +142,16 @@ class Main:
 			for interval in sorted(self.factors_by_year, key=lambda k: int(k.split('-')[0])):
 				number = for_prediction[interval]
 				next_interval = self.next_interval(interval)
-				new_data[next_interval] = {'male': number['male'], 'female': number['female']}
-				data_by_year[last_year].append(int((number['male'] + number['female']) * self.factors_by_year[interval]))
+				factor = self.factors_by_year[interval]
+				new_data[next_interval] = {
+					'male': (number['male'] / delimiter) * factor,
+					'female': (number['female'] / delimiter) * factor
+				}
+				value = int(((number['male'] + number['female']) / delimiter) * factor)
+				data_by_year[last_year].append(value)
 
 			for_prediction = new_data
+			delimiter = 1
 
 		self.data_helper.write_to_xls(titles, data, data_by_year)
 
