@@ -1,11 +1,13 @@
 import logging as log
 import xlrd
+import xlwt
 
 
 class DataHelper:
 
 	csv_file = 'russia.csv'
 	xls_file = 'age_data.xls'
+	w_xls_file = 'out.xls'
 
 	def __init__(self, country, years):
 		if years is None:
@@ -77,3 +79,33 @@ class DataHelper:
 
 		# v[2] - Country, v[5] - year
 		return list(filter(lambda v: v[2] == self.country and int(v[5]) in self.years, male_data))
+
+	def write_to_xls(self, titles: list, data: dict, data_by_year: dict):
+		wb = xlwt.Workbook()
+		newsheet = wb.add_sheet('by_5_years')
+		by_year_sheet = wb.add_sheet('by_1_years')
+		col = 0
+		for title in titles:
+			newsheet.write(0, col, title)
+			by_year_sheet.write(0, col, title)
+			col += 1
+
+		index = 1
+		for year in sorted(data.keys()):
+			newsheet.write(index, 0, str(year))
+			col = 1
+			for number in data[year]:
+				newsheet.write(index, col, str(number))
+				col += 1
+			index += 1
+
+		index = 1
+		for year in sorted(data_by_year.keys()):
+			by_year_sheet.write(index, 0, str(year))
+			col = 1
+			for number in data_by_year[year]:
+				by_year_sheet.write(index, col, str(number))
+				col += 1
+			index += 1
+
+		wb.save(self.w_xls_file)
