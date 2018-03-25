@@ -51,6 +51,19 @@ class DataHelper:
 
 		return data_popup
 
+	def get_prediction(self, year):
+		log.info('Reading of xls file: {}'.format(self.xls_file))
+		f = xlrd.open_workbook(self.xls_file)
+
+		prediction = self.read_xls_sheet(f, 'both;2010-50', [year])
+		age = 0
+		data_popup = {year: {}}
+		for column in range(6, len(prediction[0])):
+			el = {'male': prediction[0][column] / 2, 'female': prediction[0][column] / 2}
+			data_popup[year]['{}-{}'.format(age, age + 4)] = el
+			age += 5
+		return data_popup
+
 	def xls_to_csv(self, data):
 		log.info('Write data to csv file: {}'.format(self.csv_file))
 		f = open(self.csv_file, 'w')
@@ -60,13 +73,15 @@ class DataHelper:
 				f.write('{};{};{};{}\n'.format(year, age, count['male'], count['female']))
 		f.close()
 
-	def read_xls_sheet(self, file, name):
+	def read_xls_sheet(self, file, name, years=None):
 		"""
 		Get lines on sheet in xls file using country and year filters
 		:param file:
 		:param name: name of sheet
 		:return: list of lines
 		"""
+		if not years:
+			years = self.years
 		male = file.sheet_by_name(name)
 		male_data = []
 		for nrow in range(male.nrows):
@@ -78,7 +93,7 @@ class DataHelper:
 			male_data.append(line)
 
 		# v[2] - Country, v[5] - year
-		return list(filter(lambda v: v[2] == self.country and int(v[5]) in self.years, male_data))
+		return list(filter(lambda v: v[2] == self.country and int(v[5]) in years, male_data))
 
 	def write_to_xls(self, titles: list, data: dict, data_by_year: dict):
 		wb = xlwt.Workbook()

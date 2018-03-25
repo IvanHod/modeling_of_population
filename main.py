@@ -2,12 +2,14 @@ import sys
 import logging as log
 import os
 from data_helper import DataHelper
-import math
+from plot import Plot
 
 
 class Main:
 	data_helper = None
 	data = {}
+	prediction = {}
+	big_prediction = {}
 	factors = {}
 	female_factor = {'general': 0, 'male': 0, 'female': 0}
 	female_factor_by_year = None
@@ -94,7 +96,7 @@ class Main:
 		self.factors_by_year = factors_by_year
 		self.female_factor_by_year = self.female_factor['general'] / 5
 
-	def calculate_prediction(self):
+	def calculate_prediction(self, write_xls=False):
 		titles = ['year'] + list(sorted(self.factors.keys(), key=lambda k: int(k.split('-')[0]))) + ['100+']
 		data = {}
 		data_by_year = {2000: self.data[self.years[0]]}
@@ -126,10 +128,10 @@ class Main:
 				}
 				data[last_year].append(int((number['male'] + number['female']) * self.factors[interval]))
 
+			self.big_prediction[last_year] = new_data
 			for_prediction = new_data
 
-		year = self.years[0]
-		for_prediction = self.data[year]
+		for_prediction = self.data[self.years[0]]
 		female_factor = self.female_factor_by_year
 		for num in range(1, 101, 1):
 			number_children = for_prediction['0-4']['male'] + for_prediction['0-4']['female']
@@ -153,10 +155,11 @@ class Main:
 				value = int(new_data[next_interval]['male'] + new_data[next_interval]['female'])
 				data_by_year[next_year].append(value)
 
-			year = next_year
+			self.prediction[next_year] = new_data
 			for_prediction = new_data
 
-		self.data_helper.write_to_xls(titles, data, data_by_year)
+		if write_xls:
+			self.data_helper.write_to_xls(titles, data, data_by_year)
 
 	def next_interval(self, interval: str):
 		numbers = list(map(lambda x: int(x), interval.split('-')))
@@ -178,4 +181,9 @@ if __name__ == '__main__':
 
 	main.calculate_prediction()
 
-	sys.exit()
+	plot = Plot(main)
+	# plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
+	# plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
+	plot.draw_compare("График населения на 2050", "Возрастные интервалы", "Кол-во населения")
+
+	# sys.exit()
