@@ -113,15 +113,16 @@ class Main:
 		self.female_factor_by_year = self.female_factor['general'] / 5
 		self.corrected_factors_by_year()
 
-	def corrected_factors_by_year(self):
-		data_last_year = self.data[self.years[-1]]
+	def corrected_factors_by_year(self, count=6, data_last_year=None):
+		if not data_last_year:
+			data_last_year = self.data[self.years[-1]]
 		year, female_factor = self.years[0], self.female_factor_by_year
 		male_percent, female_percent = self.female_factor['male'], self.female_factor['female']
 		factors = self.factors_by_year
 		eps, step = 30, .0002
 		while True:
 			last_year = self.data[year]
-			for i in range(1, 6):
+			for i in range(1, count):
 				number_children = .8 * union_count_genders(last_year['0-4'])
 				next_children = number_children + female_factor * self.get_number_middle_female(last_year)
 				# next_children = female_factor * self.get_number_middle_female(last_year)
@@ -159,7 +160,7 @@ class Main:
 				self.female_factor_by_year = female_factor
 				break
 
-	def calculate_prediction(self, write_xls=False):
+	def calculate_prediction(self, pr_year=2005, write_xls=False):
 		titles = ['year'] + list(sorted(self.factors.keys(), key=lambda k: int(k.split('-')[0]))) + ['100+']
 		data = {}
 		data_by_year = {2000: self.data[self.years[0]]}
@@ -193,6 +194,8 @@ class Main:
 
 			self.big_prediction[last_year] = new_data
 			for_prediction = new_data
+
+		self.corrected_factors_by_year(pr_year - 1999, self.big_prediction[pr_year])
 
 		for_prediction = self.data[self.years[0]]
 		female_factor = self.female_factor_by_year
@@ -240,11 +243,12 @@ if __name__ == '__main__':
 
 	main.split_factors_by_year()
 
-	main.calculate_prediction(write_xls=True)
+	year = 2030
+	main.calculate_prediction(year, write_xls=True)
 
 	plot = Plot(main)
 	# plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
 	# plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
-	plot.draw_compare("График населения на 2050", "Возрастные интервалы", "Кол-во населения")
+	plot.draw_compare('{}_only_factors'.format(year), "График населения на {}", "Возрастные интервалы", "Кол-во населения")
 
 	sys.exit()

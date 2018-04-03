@@ -32,38 +32,22 @@ class Plot:
 		Plot.set_labels(title, x_label, y_label)
 		plt.show()
 
-	def draw_compare(self,  title, x_label, y_label):
-		ax = plt.subplot()
-		array = self.convert_to_plt(self.main.prediction, 2050)
-		add_label = True
-		for el in array:
-			if add_label:
-				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color='g', label='Прогнозирование по году')
-			else:
-				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color='g')
-			add_label = False
+	def draw_compare(self, folder: str, title: str, x_label: str, y_label: str):
+		for year in range(2010, 2051, 20):
+			ax = plt.subplot()
+			Plot.draw_prediction(ax, self.convert_to_plt(self.main.prediction, year), 'g', 'Прогнозирование по году')
 
-		array = self.convert_to_plt(self.main.big_prediction, 2050)
-		add_label = True
-		for el in array:
-			if add_label:
-				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color='b', label='Прогнозирование по 5 годам')
-			else:
-				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color='b')
-			add_label = False
+			prediction = self.convert_to_plt(self.main.big_prediction, year)
+			Plot.draw_prediction(ax, prediction, 'b', 'Прогнозирование по 5 годам')
 
-		prediction = self.convert_to_plt(self.main.data_helper.get_prediction(2050), 2050)
-		add_label = True
-		for el in prediction:
-			if add_label:
-				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color='r', label='Прогнозирование из xml')
-			else:
-				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color='r')
-			add_label = False
+			prediction = self.convert_to_plt(self.main.data_helper.get_prediction(year), year)
+			Plot.draw_prediction(ax, prediction, 'r', 'Прогнозирование из xml')
 
-		plt.legend()
-		Plot.set_labels(title, x_label, y_label)
-		plt.show()
+			plt.legend()
+			Plot.set_labels(title.format(year), x_label, y_label)
+			plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
+			plt.clf()
+		# plt.show()
 
 	def convert_to_plt(self, array, year):
 		result = []
@@ -85,3 +69,13 @@ class Plot:
 		plt.title(title)
 		plt.xlabel(x_label)
 		plt.ylabel(y_label)
+
+	@staticmethod
+	def draw_prediction(ax, array, color, label):
+		add_label = True
+		for el in array:
+			if add_label:
+				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color=color, label=label)
+			else:
+				ax.plot(el['keys'], el['values'], 'o-', alpha=.8, color=color)
+			add_label = False
