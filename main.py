@@ -5,6 +5,20 @@ from data_helper import DataHelper
 from plot import Plot
 
 
+def union_count_genders(count):
+	return count['male'] + count['female']
+
+
+def get_next_interval(interval: str):
+	numbers = list(map(lambda x: int(x), interval.split('-')))
+	return '{}-{}'.format(numbers[0] + 5, numbers[1] + 5)
+
+
+def get_prev_interval(interval: str):
+	numbers = list(map(lambda x: int(x), interval.split('-')))
+	return '{}-{}'.format(numbers[0] - 5, numbers[1] - 5)
+
+
 class Main:
 	data_helper = None
 	data = {}
@@ -89,12 +103,61 @@ class Main:
 
 	def split_factors_by_year(self):
 		log.info('Translate factors by a year step...')
+		# factors_by_year = self.factors
 		factors_by_year = {}
 		for interval in self.factors:
 			factors_by_year[interval] = self.factors[interval] / 5
-
 		self.factors_by_year = factors_by_year
+
+		# self.female_factor_by_year = self.female_factor['general']
 		self.female_factor_by_year = self.female_factor['general'] / 5
+		self.corrected_factors_by_year()
+
+	def corrected_factors_by_year(self):
+		data_last_year = self.data[self.years[-1]]
+		year, female_factor = self.years[0], self.female_factor_by_year
+		male_percent, female_percent = self.female_factor['male'], self.female_factor['female']
+		factors = self.factors_by_year
+		eps, step = 30, .0002
+		while True:
+			last_year = self.data[year]
+			for i in range(1, 6):
+				number_children = .8 * union_count_genders(last_year['0-4'])
+				next_children = number_children + female_factor * self.get_number_middle_female(last_year)
+				# next_children = female_factor * self.get_number_middle_female(last_year)
+				new_data = {'0-4': {
+					'male': next_children * male_percent,
+					'female': next_children * female_percent
+				}}
+
+				for interval in sorted(factors, key=lambda k: int(k.split('-')[0])):
+					next_interval = get_next_interval(interval)
+					number, next_number = last_year[interval], .8 * union_count_genders(last_year[next_interval])
+					new_data[next_interval] = {
+						'male': next_number * male_percent + number['male'] * factors[interval],
+						'female': next_number * female_percent + number['female'] * factors[interval]
+						# 'male': number['male'] * factors[interval],
+						# 'female': number['female'] * factors[interval]
+					}
+
+				last_year = new_data
+
+			is_end = True
+			for interval in sorted(factors.keys(), key=lambda k: int(k.split('-')[0])):
+				perfect_value = union_count_genders(data_last_year[interval])
+				predicate_value = union_count_genders(last_year[interval])
+				diff = predicate_value - perfect_value
+				if abs(diff) > eps:
+					is_end = False
+					if interval == '0-4':
+						female_factor += -1 * step if diff > 0 else step
+					else:
+						factors[get_prev_interval(interval)] += -1 * step if diff > 0 else step
+
+			if is_end:
+				self.factors_by_year = factors
+				self.female_factor_by_year = female_factor
+				break
 
 	def calculate_prediction(self, write_xls=False):
 		titles = ['year'] + list(sorted(self.factors.keys(), key=lambda k: int(k.split('-')[0]))) + ['100+']
@@ -121,7 +184,7 @@ class Main:
 			data[last_year] = [int(childs)]
 			for interval in sorted(self.factors, key=lambda k: int(k.split('-')[0])):
 				number = for_prediction[interval]
-				next_interval = self.next_interval(interval)
+				next_interval = get_next_interval(interval)
 				new_data[next_interval] = {
 					'male': number['male'] * self.factors[interval],
 					'female': number['female'] * self.factors[interval]
@@ -134,8 +197,9 @@ class Main:
 		for_prediction = self.data[self.years[0]]
 		female_factor = self.female_factor_by_year
 		for num in range(1, 101, 1):
-			number_children = for_prediction['0-4']['male'] + for_prediction['0-4']['female']
+			number_children = union_count_genders(for_prediction['0-4'])
 			next_children = number_children * .8 + female_factor * self.get_number_middle_female(for_prediction)
+			# next_children = female_factor * self.get_number_middle_female(for_prediction)
 			new_data = {'0-4': {
 				'male': next_children * self.female_factor['male'],
 				'female': next_children * self.female_factor['female']
@@ -144,13 +208,14 @@ class Main:
 			next_year = self.years[0] + num
 			data_by_year[next_year] = [int(next_children)]
 			for interval in sorted(self.factors_by_year, key=lambda k: int(k.split('-')[0])):
-				next_interval = self.next_interval(interval)
+				next_interval = get_next_interval(interval)
 				number = for_prediction[interval]
-				next_number = for_prediction[next_interval]['male'] + for_prediction[next_interval]['female']
 				factor = self.factors_by_year[interval]
 				new_data[next_interval] = {
-					'male': next_number * .8 * self.female_factor['male'] + number['male'] * factor,
-					'female': next_number * .8 * self.female_factor['female'] + number['female'] * factor
+					'male': .8 * for_prediction[next_interval]['male'] + number['male'] * factor,
+					'female': .8 * for_prediction[next_interval]['female'] + number['female'] * factor
+					# 'male': number['male'] * factor,
+					# 'female': number['female'] * factor
 				}
 				value = int(new_data[next_interval]['male'] + new_data[next_interval]['female'])
 				data_by_year[next_year].append(value)
@@ -160,10 +225,6 @@ class Main:
 
 		if write_xls:
 			self.data_helper.write_to_xls(titles, data, data_by_year)
-
-	def next_interval(self, interval: str):
-		numbers = list(map(lambda x: int(x), interval.split('-')))
-		return '{}-{}'.format(numbers[0] + 5, numbers[1] + 5)
 
 
 if __name__ == '__main__':
@@ -179,11 +240,11 @@ if __name__ == '__main__':
 
 	main.split_factors_by_year()
 
-	main.calculate_prediction()
+	main.calculate_prediction(write_xls=True)
 
 	plot = Plot(main)
 	# plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
 	# plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
 	plot.draw_compare("График населения на 2050", "Возрастные интервалы", "Кол-во населения")
 
-	# sys.exit()
+	sys.exit()
