@@ -37,8 +37,9 @@ class Plot:
 			ax = plt.subplot()
 			Plot.draw_prediction(ax, self.convert_to_plt(self.main.prediction, year), 'g', 'Прогнозирование по году')
 
-			prediction = self.convert_to_plt(self.main.big_prediction, year)
-			Plot.draw_prediction(ax, prediction, 'b', 'Прогнозирование по 5 годам')
+			if year % 5 == 0:
+				prediction = self.convert_to_plt(self.main.big_prediction, year)
+				Plot.draw_prediction(ax, prediction, 'b', 'Прогнозирование по 5 годам')
 
 			prediction = self.convert_to_plt(self.main.data_helper.get_prediction(year), year)
 			Plot.draw_prediction(ax, prediction, 'r', 'Прогнозирование из xml')
