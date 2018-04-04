@@ -41,14 +41,22 @@ class Plot:
 				prediction = self.convert_to_plt(self.main.big_prediction, year)
 				Plot.draw_prediction(ax, prediction, 'b', 'Прогнозирование по 5 годам')
 
-			prediction = self.convert_to_plt(self.main.data_helper.get_prediction(year), year)
-			Plot.draw_prediction(ax, prediction, 'r', 'Прогнозирование из xml')
+				prediction = self.convert_to_plt(self.main.data_helper.get_prediction(year), year)
+				Plot.draw_prediction(ax, prediction, 'r', 'Прогнозирование из xml')
 
 			plt.legend()
 			Plot.set_labels(title.format(year), x_label, y_label)
 			plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
 			plt.clf()
 		# plt.show()
+
+	def draw_interval_year(self, title):
+		predictions = self.main.interval_prediction[2005]
+		x, y = list(sorted(predictions.keys())), []
+		for xi in x:
+			y.append(int(predictions[xi]['male'] + predictions[xi]['female']))
+		plt.plot(x, y, '-o')
+		plt.show()
 
 	def convert_to_plt(self, array, year):
 		result = []
