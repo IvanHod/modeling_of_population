@@ -8,6 +8,7 @@ class DataHelper:
 	csv_file = 'russia.csv'
 	xls_file = 'age_data.xls'
 	w_xls_file = 'out.xls'
+	prediction = None
 
 	def __init__(self, country, years):
 		if years is None:
@@ -51,17 +52,62 @@ class DataHelper:
 
 		return data_popup
 
-	def get_prediction(self, year):
-		log.info('Reading of xls file: {}'.format(self.xls_file))
-		f = xlrd.open_workbook(self.xls_file)
+	def from_files(self, file_name='out.xls'):
+		f = xlrd.open_workbook(file_name)
+		by_5 = self.read_xls_sheet_my(f, 'by_5_years')
+		by_1 = self.read_xls_sheet_my(f, 'by_1_years')
+		by_interval_1 = self.read_xls_sheet_my(f, 'by_1_years_interval_1')
+		pr_by_5, pr_by_1, pr_by_interval = {}, {}, {}
 
-		prediction = self.read_xls_sheet(f, 'both;2010-50', [year])
-		age = 0
+		index, titles = 1, by_5[0][1:]
+		titles[-1] = '100-105'
+		for year in by_5[1:-1]:
+			y = int(year[0])
+			pr_by_5[y] = {}
+			for i in range(1, len(by_5[index])):
+				val = int(by_5[index][i]) / 2
+				pr_by_5[y][titles[i - 1]] = {'male': val, 'female': val}
+			index += 1
+
+		index, titles = 1, by_1[0][1:]
+		titles[-1] = '100-105'
+		for year in by_1[1:]:
+			y = int(year[0])
+			pr_by_1[y] = {}
+			for i in range(1, len(by_1[index])):
+				val = int(by_1[index][i]) / 2
+				pr_by_1[y][titles[i - 1]] = {'male': val, 'female': val}
+			index += 1
+
+		index, titles = 1, by_interval_1[0][1:]
+		titles[-1] = '100'
+		for year in by_interval_1[1:]:
+			y = int(year[0])
+			pr_by_interval[y] = {}
+			for i in range(1, len(by_interval_1[index])):
+				val = int(by_interval_1[index][i]) / 2
+				pr_by_interval[y][int(titles[i - 1])] = {'male': val, 'female': val}
+			index += 1
+		return pr_by_5, pr_by_1, pr_by_interval
+
+	def get_prediction(self, year):
 		data_popup = {year: {}}
-		for column in range(6, len(prediction[0])):
-			el = {'male': prediction[0][column] / 2, 'female': prediction[0][column] / 2}
-			data_popup[year]['{}-{}'.format(age, age + 4)] = el
-			age += 5
+		if not self.prediction:
+			log.info('Reading of xls file: {}'.format(self.xls_file))
+			f = xlrd.open_workbook(self.xls_file)
+			predictions = self.read_xls_sheet(f, 'both;2010-50', list(range(2000, 2051, 10)))
+
+			self.prediction = {}
+			for prediction in predictions:
+				age = 0
+				y = prediction[5]
+				self.prediction[y] = {}
+				for column in range(6, len(prediction)):
+					el = {'male': prediction[column] / 2, 'female': prediction[column] / 2}
+					self.prediction[y]['{}-{}'.format(age, age + 4)] = el
+					age += 5
+
+		data_popup[year] = self.prediction[year]
 		return data_popup
 
 	def xls_to_csv(self, data):
@@ -72,6 +118,19 @@ class DataHelper:
 				count = data[year][age]
 				f.write('{};{};{};{}\n'.format(year, age, count['male'], count['female']))
 		f.close()
+
+	def read_xls_sheet_my(self, file, name):
+		male = file.sheet_by_name(name)
+		male_data = []
+		for nrow in range(male.nrows):
+			line = []
+			row = male.row(nrow)
+			for el in row:
+				line.append(el.value)
+
+			male_data.append(line)
+
+		return male_data
 
 	def read_xls_sheet(self, file, name, years=None):
 		"""

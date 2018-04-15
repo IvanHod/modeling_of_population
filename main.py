@@ -33,6 +33,17 @@ class Main:
 
 		self.data_helper = DataHelper(country, years)
 
+	def calculate(self, from_file=False):
+		if from_file:
+			self.big_prediction, self.prediction, self.interval_prediction = self.data_helper.from_files()
+		else:
+			self.detect_factors()
+			self.detect_female_factor()
+
+			self.split_factors_by_year()
+			self.calculate_prediction(write_xls=False)
+
+
 	def read_data(self):
 		log.info('Reading of data...')
 		if os.path.exists(self.data_helper.csv_file):
@@ -240,20 +251,21 @@ class Main:
 			self.prediction[next_year] = new_data
 			for_prediction = new_data
 
-			# if next_year % 5 == 0:
-			# 	prediction = self.big_prediction[next_year + 5]
-			# 	self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
+			if next_year % 5 == 0:
+				prediction = self.big_prediction[next_year + 5]
+				self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
 
 		return data
 
 	def modeling_by_1_interval_1(self, data: dict)->dict:
 		log.info('Calculating for an year and an year interval...')
-		initial_year = {2000: split_interval(self.data[2000])}
+		start_year = 2000
+		initial_year = {start_year: split_interval(self.data[start_year])}
 
-		prediction = split_interval(self.big_prediction[2010])
-		self.corrected_factors_interval_year(count=11, initial_year=initial_year[2000], data_last_year=prediction)
+		prediction = split_interval(self.big_prediction[start_year + 10])
+		self.corrected_factors_interval_year(count=11, initial_year=initial_year[start_year], data_last_year=prediction)
 
-		for_prediction = initial_year[2000]
+		for_prediction = initial_year[start_year]
 		for num in range(1, 101, 1):
 			if num % 20 == 0:
 				log.info('Calculating for an year and an interval in {} iteration...'.format(num))
@@ -284,14 +296,9 @@ if __name__ == '__main__':
 
 	main = Main()
 	main.read_data()
-
-	main.detect_factors()
-	main.detect_female_factor()
-
-	main.split_factors_by_year()
+	main.calculate(from_file=True)
 
 	folder = 'mixed'
-	main.calculate_prediction(True)
 
 	plot = Plot(main)
 	# plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")

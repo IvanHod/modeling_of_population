@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from tools import *
+import logging as log
 
 
 class Plot:
@@ -51,19 +52,20 @@ class Plot:
 			plt.clf()
 
 	def draw_compare_with_interval(self, folder: str, title: str, x_label: str, y_label: str):
-		for year in range(2010, 2051, 20):
+		for year in range(2010, 2101, 20):
+			log.info('Render the plot for {} year...'.format(year))
 			ax = plt.subplot()
 			x, y = [], []
 			for interval in sorted(self.main.prediction[year].keys(), key=lambda k: int(k.split('-')[0])):
 				x.append(int(interval.split('-')[0]))
 				y.append(union_count_genders(self.main.prediction[year][interval]))
-			ax.plot(x, y, 'g', label='Прогнозирование по году')
+			ax.plot(x, y, 'g', label='Прогнозирование по году с интервалом в 5 лет')
 
 			x, y = [], []
 			for interval in self.main.interval_prediction[year].keys():
 				x.append(int(interval))
 				y.append(union_count_genders(self.main.interval_prediction[year][interval]))
-			ax.plot(x, y, 'r', label='Прогнозирование по году')
+			ax.plot(x, y, 'r', label='Прогнозирование по году с интервалом в год')
 
 			if year % 5 == 0:
 				x, y = [], []
@@ -72,8 +74,22 @@ class Plot:
 					y.append(union_count_genders(self.main.big_prediction[year][interval]))
 				ax.plot(x, y, 'b', label='Прогнозирование по 5 годам')
 
-				# prediction = self.convert_to_plt(self.main.data_helper.get_prediction(year), year)
-				# Plot.draw_prediction(ax, prediction, 'r', 'Прогнозирование из xml')
+				if year < 2051:
+					x, y = [], []
+					xml_data = self.main.data_helper.get_prediction(year)[year]
+					for interval in sorted(xml_data.keys(), key=lambda k: int(k.split('-')[0])):
+						x.append(int(interval.split('-')[0]))
+						y.append(union_count_genders(xml_data[interval]))
+					ax.plot(x, y, 'y', label='Прогнозирование из xml')
+
+			x, y = [], []
+			for index in range(0, 101, 5):
+				val = 0
+				for i in range(index, index + 5):
+					val += union_count_genders(self.main.interval_prediction[year][index])
+				x.append(index)
+				y.append(val)
+			ax.plot(x, y, 'k--', label='Прогнозирование по году суммарное')
 
 			plt.grid()
 			plt.legend()
