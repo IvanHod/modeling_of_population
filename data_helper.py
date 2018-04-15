@@ -95,29 +95,30 @@ class DataHelper:
 		# v[2] - Country, v[5] - year
 		return list(filter(lambda v: v[2] == self.country and int(v[5]) in years, male_data))
 
-	def write_to_xls(self, titles: list, data: dict, data_by_year: dict, data_by_each_year):
+	def write_to_xls(self, titles: list, data: dict, data_by_year: dict, data_by_each_year:dict):
 		wb = xlwt.Workbook()
-		newsheet = wb.add_sheet('by_5_years')
+		by_5_years = wb.add_sheet('by_5_years')
 		by_year_sheet = wb.add_sheet('by_1_years')
-		by_interva_year_sheet = wb.add_sheet('by_1_years_interval_1')
+		by_interval_year_sheet = wb.add_sheet('by_1_years_interval_1')
 		col = 0
 		for title in titles:
-			newsheet.write(0, col, title)
+			by_5_years.write(0, col, title)
 			by_year_sheet.write(0, col, title)
 			col += 1
 		col = 0
 
 		for interval in ['year'] + list(range(0, 100)) + ['100+']:
-			by_interva_year_sheet.write(0, col, interval)
+			by_interval_year_sheet.write(0, col, interval)
 			col += 1
 
 		# write predictions by 5 years
-		DataHelper.write_sheet(newsheet, data)
+		DataHelper.write_sheet(by_5_years, data)
 
 		# write predictions by 1 years
 		DataHelper.write_sheet(by_year_sheet, data_by_year)
 
 		# write predictions by an year and with year intervals
+		DataHelper.write_sheet(by_interval_year_sheet, data_by_each_year)
 
 		wb.save(self.w_xls_file)
 

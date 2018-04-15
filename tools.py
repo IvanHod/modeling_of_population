@@ -48,9 +48,23 @@ def interpolate_intervals(x, interval_1, interval_2):
 # надо сделать разделение по полу
 def split_interval(interval: dict) -> dict:
 	result = {}
-	for number in interval:
+	for number in sorted(interval.keys(), key=lambda k: int(k.split('-')[0])):
 		rn = list(map(lambda x: int(x), number.split('-')))
-		male, female = interval[number]['male'] / 5, interval[number]['female']
-		for age in range(rn[0], rn[1] + 1):
-			result[age] = {'male': male, 'female': female}
+		if rn[0] == 100:
+			result[rn[0]] = {'male': interval[number]['male'], 'female': interval[number]['female']}
+			break
+		else:
+			male, female = interval[number]['male'] / 5, interval[number]['female'] / 5
+			for age in range(rn[0], rn[1] + 1):
+				result[age] = {'male': male, 'female': female}
 	return result
+
+
+def get_number_middle_female(year, delimiter=None):
+	count_woman = 0
+	for rn in range(20, 40, 5):
+		interval = '{}-{}'.format(rn, rn + 4)
+		count_woman += year[interval]['female']
+	if delimiter:
+		count_woman /= delimiter
+	return count_woman

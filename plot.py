@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from tools import *
 
 
 class Plot:
@@ -44,6 +45,37 @@ class Plot:
 				prediction = self.convert_to_plt(self.main.data_helper.get_prediction(year), year)
 				Plot.draw_prediction(ax, prediction, 'r', 'Прогнозирование из xml')
 
+			plt.legend()
+			Plot.set_labels(title.format(year), x_label, y_label)
+			plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
+			plt.clf()
+
+	def draw_compare_with_interval(self, folder: str, title: str, x_label: str, y_label: str):
+		for year in range(2010, 2051, 20):
+			ax = plt.subplot()
+			x, y = [], []
+			for interval in sorted(self.main.prediction[year].keys(), key=lambda k: int(k.split('-')[0])):
+				x.append(int(interval.split('-')[0]))
+				y.append(union_count_genders(self.main.prediction[year][interval]))
+			ax.plot(x, y, 'g', label='Прогнозирование по году')
+
+			x, y = [], []
+			for interval in self.main.interval_prediction[year].keys():
+				x.append(int(interval))
+				y.append(union_count_genders(self.main.interval_prediction[year][interval]))
+			ax.plot(x, y, 'r', label='Прогнозирование по году')
+
+			if year % 5 == 0:
+				x, y = [], []
+				for interval in sorted(self.main.big_prediction[year].keys(), key=lambda k: int(k.split('-')[0])):
+					x.append(int(interval.split('-')[0]))
+					y.append(union_count_genders(self.main.big_prediction[year][interval]))
+				ax.plot(x, y, 'b', label='Прогнозирование по 5 годам')
+
+				# prediction = self.convert_to_plt(self.main.data_helper.get_prediction(year), year)
+				# Plot.draw_prediction(ax, prediction, 'r', 'Прогнозирование из xml')
+
+			plt.grid()
 			plt.legend()
 			Plot.set_labels(title.format(year), x_label, y_label)
 			plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
