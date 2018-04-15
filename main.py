@@ -3,48 +3,7 @@ import logging as log
 import os
 from data_helper import DataHelper
 import random
-from scipy import interpolate
-import numpy as np
-
-
-def union_count_genders(count):
-	return count['male'] + count['female']
-
-def get_next_interval(interval: str):
-	numbers = list(map(lambda x: int(x), interval.split('-')))
-	return '{}-{}'.format(numbers[0] + 5, numbers[1] + 5)
-
-def get_prev_interval(interval: str):
-	numbers = list(map(lambda x: int(x), interval.split('-')))
-	return '{}-{}'.format(numbers[0] - 5, numbers[1] - 5)
-
-
-def new_interval(number: dict, factor, rest=None) -> dict:
-	_new_interval = {
-		'male': number['male'] * factor,
-		'female': number['female'] * factor
-	}
-	if rest:
-		_new_interval['male'] += .8 * rest['male']
-		_new_interval['female'] += .8 * rest['female']
-	return _new_interval
-
-def get_number_middle_female_year(year, delimiter=None):
-	count_woman = 0
-	for rn in range(20, 41, 1):
-		count_woman += year[rn]['female']
-	if delimiter:
-		count_woman /= delimiter
-	return count_woman
-
-# надо сделать разделение по полу
-def interpolate_intervals(x, interval_1, interval_2):
-	f_p = union_count_genders(interval_1)
-	s_p = union_count_genders(interval_2)
-	diff = (s_p - f_p) / 2
-	f = interpolate.interp1d(x, [(f_p - diff) / 5, (s_p - diff) / 5])
-
-	return f(range(x[0], x[0] + 4))
+from tools import *
 
 
 class Main:
@@ -224,7 +183,7 @@ class Main:
 				self.female_factor_by_year = female_factor
 				break
 
-	def calculate_prediction(self, pr_year=2005, write_xls=False):
+	def calculate_prediction(self, write_xls=False):
 		log.info('Calculating of predictions...')
 		titles = ['year'] + list(sorted(self.factors.keys(), key=lambda k: int(k.split('-')[0]))) + ['100+']
 		data, data_by_year = {}, {2000: self.data[self.years[0]]}
@@ -236,15 +195,15 @@ class Main:
 				if year == self.years[0]:
 					data_by_year[year].append(int(count))
 
-		data = self.modeling_by_5(data)
-		interval_data = data_by_year
-		data_by_year = self.modeling_by_1(data_by_year)
-		data_by_year_interval_year = self.modeling_by_1_interval_1(interval_data)
+		prediction_data_by_5 = self.modeling_by_5(data)
+		prediction_data_by_year = self.modeling_by_1(data_by_year)
+		# data_by_year_interval_year = self.modeling_by_1_interval_1(data_by_year)
 
 		if write_xls:
-			self.data_helper.write_to_xls(titles, data, data_by_year)
+			self.data_helper.write_to_xls(titles, prediction_data_by_5, prediction_data_by_year, None)
 
 	def modeling_by_5(self, data):
+		log.info('Calculating for 5 years...')
 		fm = self.female_factor
 		last_year = self.years[-1]
 		for_prediction = self.data[last_year]
@@ -265,11 +224,14 @@ class Main:
 		return data
 
 	def modeling_by_1(self, data):
-		fm, female_factor = self.female_factor, self.female_factor_by_year
+		log.info('Calculating for an year...')
 		for_prediction = self.data[self.years[0]]
 		for num in range(1, 101, 1):
+			fm = self.female_factor
+			if num % 20 == 0:
+				log.info('Calculating for an year in {} iteration...'.format(num))
 			number_children = .8 * union_count_genders(for_prediction['0-4'])
-			children = number_children + female_factor * self.get_number_middle_female(for_prediction)
+			children = number_children + self.female_factor_by_year * self.get_number_middle_female(for_prediction)
 			new_data = {'0-4': {'male': children * fm['male'], 'female': children * fm['female']}}
 
 			next_year = self.years[0] + num
@@ -284,24 +246,17 @@ class Main:
 			self.prediction[next_year] = new_data
 			for_prediction = new_data
 
-			# if next_year % 5 == 0:
-			# 	prediction = self.big_prediction[next_year + 5]
-			# 	self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
+			if next_year % 5 == 0:
+				prediction = self.big_prediction[next_year + 5]
+				self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
 
 		return data
 
 	def modeling_by_1_interval_1(self, data):
-		initial_year = {2000: {}}
-		source_data = self.data[2000]
-		for interval in source_data:
-			years = list(map(lambda i: int(i), interval.split('-')))
-			for year in range(years[0], years[1] + 1):
-				initial_year[2000][year] = {
-					'male': source_data[interval]['male'] / 5,
-					'female': source_data[interval]['female'] / 5
-				}
+		log.info('Calculating for an year and an year interval...')
+		initial_year = {2000: split_interval(self.data[2000])}
 
-		self.corrected_factors_interval_year(initial_year[2000])
+		# self.corrected_factors_interval_year(initial_year[2000])
 		fm, female_factor = self.female_factor, self.female_factor_by_year
 		for_prediction = initial_year[2000]
 		for num in range(1, 101, 1):
@@ -330,19 +285,17 @@ if __name__ == '__main__':
 	main = Main()
 	main.read_data()
 
-	# interpolate.interp1d()
-	# main.detect_factors()
-	# main.detect_female_factor()
-	#
-	# main.split_factors_by_year()
-	#
-	# folder = 'mixed'
-	# year = 2030
-	# main.calculate_prediction(year)
-	#
+	main.detect_factors()
+	main.detect_female_factor()
+
+	main.split_factors_by_year()
+
+	folder = 'mixed'
+	main.calculate_prediction(True)
+
 	# plot = Plot(main)
-	# # plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
-	# # plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
+	# plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
+	# plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
 	# plot.draw_compare('{}_only_factors'.format(folder), "График населения на {}", "Возрастные интервалы",
 	#                   "Кол-во населения")
 	# plot.draw_interval_year('')
