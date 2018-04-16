@@ -18,6 +18,7 @@ class Main:
 	female_factor_by_year = None
 	factors_by_year = {}
 	factors_interval_year = {}
+	factor_history = {}
 
 	def __init__(self, country='Russian Federation', years=None):
 		if years and len(years) != 2:
@@ -41,8 +42,7 @@ class Main:
 			self.detect_female_factor()
 
 			self.split_factors_by_year()
-			self.calculate_prediction(write_xls=True)
-
+			self.calculate_prediction(write_xls=False)
 
 	def read_data(self):
 		log.info('Reading of data...')
@@ -69,6 +69,7 @@ class Main:
 					factors[interval] = next_year_number / prev_year_number
 			else:
 				raise Exception('There is not interval {} for an year {}'.format(interval, self.years[0]))
+		self.factor_history[5] = {'factors': factors}
 		self.factors = factors
 
 	def detect_female_factor(self):
@@ -78,6 +79,7 @@ class Main:
 		count_children = children_interval['female'] + children_interval['male']
 
 		self.female_factor['general'] = count_children / get_number_middle_female(self.data[self.years[0]])
+		self.factor_history[5]['female'] = self.female_factor['general']
 
 		self.detect_relation_male_vs_female()
 
@@ -259,11 +261,15 @@ class Main:
 
 	def modeling_by_1_interval_1(self, data: dict)->dict:
 		log.info('Calculating for an year and an year interval...')
-		start_year = 2000
+		self.factor_history[1], start_year = [], 2000
 		initial_year = {start_year: split_interval(self.data[start_year])}
 
 		prediction = split_interval(self.big_prediction[start_year + 10])
 		self.corrected_factors_interval_year(count=11, initial_year=initial_year[start_year], data_last_year=prediction)
+		self.factor_history[1].append({
+			'female': self.female_factor_by_year,
+			'factors': self.factors_interval_year.copy()
+		})
 
 		for_prediction = initial_year[start_year]
 		for num in range(1, 101, 1):
@@ -286,7 +292,10 @@ class Main:
 			if next_year % 10 == 0 and next_year + 10 in self.big_prediction:
 				prediction = split_interval(self.big_prediction[next_year + 10])
 				self.corrected_factors_interval_year(count=11, initial_year=new_data, data_last_year=prediction)
-
+				self.factor_history[1].append({
+					'female': self.female_factor_by_year,
+					'factors': self.factors_interval_year.copy()
+				})
 		return data
 
 
@@ -305,8 +314,8 @@ if __name__ == '__main__':
 	# plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
 	# plot.draw_compare('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
 	#                   "Кол-во населения")
-	plot.draw_compare_with_interval('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
-	                  "Кол-во населения")
-	# plot.draw_interval_year('')
+	plot.draw_factors_new("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
+	# plot.draw_compare_with_interval('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
+	#                   "Кол-во населения")
 
 	sys.exit()
