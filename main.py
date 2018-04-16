@@ -41,7 +41,7 @@ class Main:
 			self.detect_female_factor()
 
 			self.split_factors_by_year()
-			self.calculate_prediction(write_xls=False)
+			self.calculate_prediction(write_xls=True)
 
 
 	def read_data(self):
@@ -170,7 +170,7 @@ class Main:
 				perfect_value = union_count_genders(data_last_year[index])
 				predicate_value = union_count_genders(last_year[index])
 				diff = predicate_value - perfect_value
-				if abs(diff) > eps:
+				if index < 90 and abs(diff) > eps or index >= 90 and abs(diff) > 5:
 					is_end = False
 					if index == 0:
 						female_factor += -1 * step if diff > 0 else step
@@ -296,7 +296,7 @@ if __name__ == '__main__':
 
 	main = Main()
 	main.read_data()
-	main.calculate(from_file=True)
+	main.calculate(from_file=False)
 
 	folder = 'mixed'
 
