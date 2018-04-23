@@ -2,9 +2,9 @@ import sys
 import logging as log
 import os
 from data_helper import DataHelper
-import random
 from tools import *
 from plot import Plot
+import math
 
 
 class Main:
@@ -75,8 +75,7 @@ class Main:
 	def detect_female_factor(self):
 		log.info('Detect of female factor...')
 
-		children_interval = self.data[self.years[1]]['0-4']
-		count_children = children_interval['female'] + children_interval['male']
+		count_children = union_count_genders(self.data[self.years[1]]['0-4'])
 
 		self.female_factor['general'] = count_children / get_number_middle_female(self.data[self.years[0]])
 		self.factor_history[5]['female'] = self.female_factor['general']
@@ -253,9 +252,9 @@ class Main:
 			self.prediction[next_year] = new_data
 			for_prediction = new_data
 
-			if next_year % 5 == 0:
-				prediction = self.big_prediction[next_year + 5]
-				self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
+			# if next_year % 5 == 0:
+			# 	prediction = self.big_prediction[next_year + 5]
+			# 	self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
 
 		return data
 
@@ -265,37 +264,43 @@ class Main:
 		initial_year = {start_year: split_interval(self.data[start_year])}
 
 		prediction = split_interval(self.big_prediction[start_year + 10])
-		self.corrected_factors_interval_year(count=11, initial_year=initial_year[start_year], data_last_year=prediction)
+		# factors, ff = {}, self.female_factor['general'] / 5
+		factors, ff = {}, (self.female_factor['general'] * 2 / 1.4) / 5
+		for interval in sorted(self.factors, key=lambda k: int(k.split('-')[0])):
+			start = int(interval.split('-')[0])
+			value = min(math.pow(self.factors[interval], 1 / 5), 1.0)
+			for i in range(5):
+				factors[start + i] = value
+		# self.corrected_factors_interval_year(count=11, initial_year=initial_year[start_year], data_last_year=prediction)
 		self.factor_history[1].append({
-			'female': self.female_factor_by_year,
-			'factors': self.factors_interval_year.copy()
+			'female': ff,
+			'factors': factors.copy()
 		})
 
-		for_prediction = initial_year[start_year]
+		for_prediction, fm = initial_year[start_year], self.female_factor
 		for num in range(1, 101, 1):
 			if num % 20 == 0:
 				log.info('Calculating for an year and an interval in {} iteration...'.format(num))
 
-			fm = self.female_factor
-			children = self.female_factor_by_year * get_number_middle_female_year(for_prediction)
+			children = ff * get_number_middle_female_year(for_prediction)
 			new_data = {0: {'male': children * fm['male'], 'female': children * fm['female']}}
 
 			next_year = self.years[0] + num
 			data[next_year] = [int(children)]
-			for interval in sorted(self.factors_interval_year):
-				new_data[interval + 1] = new_interval(for_prediction[interval], self.factors_interval_year[interval])
+			for interval in sorted(factors):
+				new_data[interval + 1] = new_interval(for_prediction[interval], factors[interval])
 				data[next_year].append(int(union_count_genders(new_data[interval + 1])))
 
 			self.interval_prediction[next_year] = new_data
 			for_prediction = new_data
 
-			if next_year % 10 == 0 and next_year + 10 in self.big_prediction:
-				prediction = split_interval(self.big_prediction[next_year + 10])
-				self.corrected_factors_interval_year(count=11, initial_year=new_data, data_last_year=prediction)
-				self.factor_history[1].append({
-					'female': self.female_factor_by_year,
-					'factors': self.factors_interval_year.copy()
-				})
+			# if next_year % 10 == 0 and next_year + 10 in self.big_prediction:
+			# 	prediction = split_interval(self.big_prediction[next_year + 10])
+			# 	self.corrected_factors_interval_year(count=11, initial_year=new_data, data_last_year=prediction)
+			# 	self.factor_history[1].append({
+			# 		'female': self.female_factor_by_year,
+			# 		'factors': self.factors_interval_year.copy()
+			# 	})
 		return data
 
 
@@ -315,7 +320,7 @@ if __name__ == '__main__':
 	# plot.draw_compare('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
 	#                   "Кол-во населения")
 	plot.draw_factors_new("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
-	# plot.draw_compare_with_interval('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
-	#                   "Кол-во населения")
+	plot.draw_compare_with_interval('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
+	                  "Кол-во населения")
 
 	sys.exit()

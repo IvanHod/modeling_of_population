@@ -95,12 +95,12 @@ class DataHelper:
 		if not self.prediction:
 			log.info('Reading of xls file: {}'.format(self.xls_file))
 			f = xlrd.open_workbook(self.xls_file)
-			predictions = self.read_xls_sheet(f, 'both;2010-50', list(range(2000, 2051, 10)))
+			predictions = self.read_xls_sheet(f, 'both;2010-50', list(range(2000, 2051, 5)))
 
 			self.prediction = {}
 			for prediction in predictions:
 				age = 0
-				y = prediction[5]
+				y = int(prediction[5])
 				self.prediction[y] = {}
 				for column in range(6, len(prediction)):
 					el = {'male': prediction[column] / 2, 'female': prediction[column] / 2}

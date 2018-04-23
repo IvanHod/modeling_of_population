@@ -41,31 +41,31 @@ class Plot:
 		plt.savefig('plots/factors/fig-start-factors.png')
 		plt.clf()
 
-		ax = plt.subplot()
-		ax.plot([2000], [self.main.factor_history[5]['female']], 'ob', alpha=.8, label='Коэффициэнт фертильности для 5 лет')
-		x, y, index = [], [], 2000
-		for year_data in self.main.factor_history[1]:
-			x.append(index)
-			y.append(year_data['female'])
-			index += 10
-		ax.plot(x, y, '.-g', alpha=.8, label='Коэффициэнты фертильности для года')
-		Plot.set_labels(title, x_label, y_label)
-		plt.legend()
-		plt.grid()
-		plt.savefig('plots/factors/fig-female-factor.png')
-		plt.clf()
+		# ax = plt.subplot()
+		# ax.plot([2000], [self.main.factor_history[5]['female']], 'ob', alpha=.8, label='Коэффициэнт фертильности для 5 лет')
+		# x, y, index = [], [], 2000
+		# for year_data in self.main.factor_history[1]:
+		# 	x.append(index)
+		# 	y.append(year_data['female'])
+		# 	index += 10
+		# ax.plot(x, y, '.-g', alpha=.8, label='Коэффициэнты фертильности для года')
+		# Plot.set_labels(title, x_label, y_label)
+		# plt.legend()
+		# plt.grid()
+		# plt.savefig('plots/factors/fig-female-factor.png')
+		# plt.clf()
 
-		ax, index = plt.subplot(), 2000
-		for year_data in self.main.factor_history[1]:
-			x = year_data['factors'].keys()
-			y = year_data['factors'].values()
-			ax.plot(x, y, '.-', alpha=.8, label='Факторы для {} года'.format(index))
-			index += 10
-		Plot.set_labels(title, x_label, y_label)
-		plt.legend()
-		plt.grid()
-		plt.savefig('plots/factors/fig-year-factors.png')
-		plt.clf()
+		# ax, index = plt.subplot(), 2000
+		# for year_data in self.main.factor_history[1]:
+		# 	x = year_data['factors'].keys()
+		# 	y = year_data['factors'].values()
+		# 	ax.plot(x, y, '.-', alpha=.8, label='Факторы для {} года'.format(index))
+		# 	index += 10
+		# Plot.set_labels(title, x_label, y_label)
+		# plt.legend()
+		# plt.grid()
+		# plt.savefig('plots/factors/fig-year-factors.png')
+		# plt.clf()
 
 		plt.show()
 
@@ -103,14 +103,14 @@ class Plot:
 			plt.clf()
 
 	def draw_compare_with_interval(self, folder: str, title: str, x_label: str, y_label: str):
-		for year in range(2010, 2101, 20):
+		for year in range(2010, 2101, 10):
 			log.info('Render the plot for {} year...'.format(year))
 			ax = plt.subplot()
-			x, y = [], []
-			for interval in sorted(self.main.prediction[year].keys(), key=lambda k: int(k.split('-')[0])):
-				x.append(int(interval.split('-')[0]))
-				y.append(union_count_genders(self.main.prediction[year][interval]))
-			ax.plot(x, y, 'g', label='Прогнозирование по году с интервалом в 5 лет')
+			# x, y = [], []
+			# for interval in sorted(self.main.prediction[year].keys(), key=lambda k: int(k.split('-')[0])):
+			# 	x.append(int(interval.split('-')[0]))
+			# 	y.append(union_count_genders(self.main.prediction[year][interval]))
+			# ax.plot(x, y, 'g', label='Прогнозирование по году с интервалом в 5 лет')
 
 			x, y = [], []
 			for interval in self.main.interval_prediction[year].keys():
@@ -143,7 +143,7 @@ class Plot:
 			ax.plot(x, y, 'k--', label='Прогнозирование по году суммарное')
 
 			plt.grid()
-			plt.legend()
+			plt.legend(loc='best')
 			Plot.set_labels(title.format(year), x_label, y_label)
 			plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
 			plt.clf()
