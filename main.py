@@ -148,41 +148,6 @@ class Main:
 				self.female_factor_by_year = female_factor
 				break
 
-	def corrected_factors_interval_year(self, initial_year, count=6, data_last_year=None):
-		if not data_last_year:
-			data_last_year = self.data[self.years[-1]]
-		year, female_factor = self.years[0], self.female_factor['general'] / 5
-		male_percent, female_percent = self.female_factor['male'], self.female_factor['female']
-		factors = self.factors_interval_year
-		eps, step = 50, .0002
-		while True:
-			last_year = initial_year
-			for i in range(1, count):
-				children = female_factor * get_number_middle_female_year(last_year)
-				new_data = {0: {'male': children * male_percent, 'female': children * female_percent}}
-
-				for interval in sorted(factors):
-					new_data[interval + 1] = new_interval(last_year[interval], factors[interval])
-
-				last_year = new_data
-
-			is_end = True
-			for index in range(0, 100):
-				perfect_value = union_count_genders(data_last_year[index])
-				predicate_value = union_count_genders(last_year[index])
-				diff = predicate_value - perfect_value
-				if index < 90 and abs(diff) > eps or index >= 90 and abs(diff) > 5:
-					is_end = False
-					if index == 0:
-						female_factor += -1 * step if diff > 0 else step
-					else:
-						factors[index - 1] += -1 * step if diff > 0 else step
-
-			if is_end:
-				self.factors_interval_year = factors
-				self.female_factor_by_year = female_factor
-				break
-
 	def calculate_prediction(self, write_xls=False):
 		log.info('Calculating of predictions...')
 		titles = ['year'] + list(sorted(self.factors.keys(), key=lambda k: int(k.split('-')[0]))) + ['100+']
@@ -263,22 +228,21 @@ class Main:
 		self.factor_history[1], start_year = [], 2000
 		initial_year = {start_year: split_interval(self.data[start_year])}
 
-		prediction = split_interval(self.big_prediction[start_year + 10])
 		# factors, ff = {}, self.female_factor['general'] / 5
-		factors, ff = {}, (self.female_factor['general'] * 2 / 1.4) / 5
+		# factors, ff = {}, (self.female_factor['general'] * 2 / 1.325) / 5
+		factors, ff = {}, (self.female_factor['general'] * 1.9 / 1.325) / 5
 		for interval in sorted(self.factors, key=lambda k: int(k.split('-')[0])):
 			start = int(interval.split('-')[0])
 			value = min(math.pow(self.factors[interval], 1 / 5), 1.0)
 			for i in range(5):
 				factors[start + i] = value
-		# self.corrected_factors_interval_year(count=11, initial_year=initial_year[start_year], data_last_year=prediction)
 		self.factor_history[1].append({
 			'female': ff,
 			'factors': factors.copy()
 		})
 
 		for_prediction, fm = initial_year[start_year], self.female_factor
-		for num in range(1, 101, 1):
+		for num in range(1, 501, 1):
 			if num % 20 == 0:
 				log.info('Calculating for an year and an interval in {} iteration...'.format(num))
 
@@ -286,6 +250,7 @@ class Main:
 			new_data = {0: {'male': children * fm['male'], 'female': children * fm['female']}}
 
 			next_year = self.years[0] + num
+			log.info('{} - {} number of people.'.format(next_year, int(sum(union_count_genders(v) for v in for_prediction.values()))))
 			data[next_year] = [int(children)]
 			for interval in sorted(factors):
 				new_data[interval + 1] = new_interval(for_prediction[interval], factors[interval])
@@ -293,14 +258,7 @@ class Main:
 
 			self.interval_prediction[next_year] = new_data
 			for_prediction = new_data
-
-			# if next_year % 10 == 0 and next_year + 10 in self.big_prediction:
-			# 	prediction = split_interval(self.big_prediction[next_year + 10])
-			# 	self.corrected_factors_interval_year(count=11, initial_year=new_data, data_last_year=prediction)
-			# 	self.factor_history[1].append({
-			# 		'female': self.female_factor_by_year,
-			# 		'factors': self.factors_interval_year.copy()
-			# 	})
+			
 		return data
 
 

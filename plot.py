@@ -41,34 +41,6 @@ class Plot:
 		plt.savefig('plots/factors/fig-start-factors.png')
 		plt.clf()
 
-		# ax = plt.subplot()
-		# ax.plot([2000], [self.main.factor_history[5]['female']], 'ob', alpha=.8, label='Коэффициэнт фертильности для 5 лет')
-		# x, y, index = [], [], 2000
-		# for year_data in self.main.factor_history[1]:
-		# 	x.append(index)
-		# 	y.append(year_data['female'])
-		# 	index += 10
-		# ax.plot(x, y, '.-g', alpha=.8, label='Коэффициэнты фертильности для года')
-		# Plot.set_labels(title, x_label, y_label)
-		# plt.legend()
-		# plt.grid()
-		# plt.savefig('plots/factors/fig-female-factor.png')
-		# plt.clf()
-
-		# ax, index = plt.subplot(), 2000
-		# for year_data in self.main.factor_history[1]:
-		# 	x = year_data['factors'].keys()
-		# 	y = year_data['factors'].values()
-		# 	ax.plot(x, y, '.-', alpha=.8, label='Факторы для {} года'.format(index))
-		# 	index += 10
-		# Plot.set_labels(title, x_label, y_label)
-		# plt.legend()
-		# plt.grid()
-		# plt.savefig('plots/factors/fig-year-factors.png')
-		# plt.clf()
-
-		plt.show()
-
 	def draw_by_year(self, title, x_label, y_label):
 		years = [2020, 2040, 2060, 2080, 2100]
 		colors = {2020: 'y', 2040: 'g', 2060: 'c', 2080: 'b', 2100: 'r'}
@@ -103,7 +75,7 @@ class Plot:
 			plt.clf()
 
 	def draw_compare_with_interval(self, folder: str, title: str, x_label: str, y_label: str):
-		for year in range(2010, 2101, 10):
+		for year in range(2100, 2101, 100):
 			log.info('Render the plot for {} year...'.format(year))
 			ax = plt.subplot()
 			# x, y = [], []
@@ -118,7 +90,7 @@ class Plot:
 				y.append(union_count_genders(self.main.interval_prediction[year][interval]))
 			ax.plot(x, y, 'r', label='Прогнозирование по году с интервалом в год')
 
-			if year % 5 == 0:
+			if year % 5 == 0 and year < 2101:
 				x, y = [], []
 				for interval in sorted(self.main.big_prediction[year].keys(), key=lambda k: int(k.split('-')[0])):
 					x.append(int(interval.split('-')[0]))
@@ -131,7 +103,7 @@ class Plot:
 					for interval in sorted(xml_data.keys(), key=lambda k: int(k.split('-')[0])):
 						x.append(int(interval.split('-')[0]))
 						y.append(union_count_genders(xml_data[interval]))
-					ax.plot(x, y, 'y', label='Прогнозирование из xml')
+					ax.plot(x, y, 'y', label='Прогнозирование из xls')
 
 			x, y = [], []
 			for index in range(0, 101, 5):
@@ -145,9 +117,30 @@ class Plot:
 			plt.grid()
 			plt.legend(loc='best')
 			Plot.set_labels(title.format(year), x_label, y_label)
-			plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
+			plt.show()
+			# plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
 			plt.clf()
-		# plt.show()
+
+	def draw_year(self, year):
+
+		ax = plt.subplot()
+		x, y = [], []
+		for interval in self.main.interval_prediction[year].keys():
+			x.append(int(interval))
+			y.append(union_count_genders(self.main.interval_prediction[year][interval]))
+		ax.plot(x, y, 'r', label='Прогнозирование по году с интервалом в год')
+
+		x, y = [], []
+		for index in range(0, 101, 5):
+			val = 0
+			for i in range(index, index + 5):
+				val += union_count_genders(self.main.interval_prediction[year][index])
+			x.append(index)
+			y.append(val)
+		ax.plot(x, y, 'k--', label='Прогнозирование по году суммарное')
+		plt.grid()
+		plt.legend(loc='best')
+		plt.show()
 
 	def draw_interval_year(self, title):
 		predictions = self.main.interval_prediction[2005]
