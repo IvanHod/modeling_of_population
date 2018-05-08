@@ -229,8 +229,7 @@ class Main:
 		initial_year = {start_year: split_interval(self.data[start_year])}
 
 		# factors, ff = {}, self.female_factor['general'] / 5
-		# factors, ff = {}, (self.female_factor['general'] * 2 / 1.325) / 5
-		factors, ff = {}, (self.female_factor['general'] * 1.9 / 1.325) / 5
+		factors, ff = {}, (self.female_factor['general'] * 2 / 1.325) / 5
 		for interval in sorted(self.factors, key=lambda k: int(k.split('-')[0])):
 			start = int(interval.split('-')[0])
 			value = min(math.pow(self.factors[interval], 1 / 5), 1.0)
@@ -243,14 +242,14 @@ class Main:
 
 		for_prediction, fm = initial_year[start_year], self.female_factor
 		for num in range(1, 501, 1):
-			if num % 20 == 0:
+			if num % 100 == 0:
 				log.info('Calculating for an year and an interval in {} iteration...'.format(num))
 
 			children = ff * get_number_middle_female_year(for_prediction)
 			new_data = {0: {'male': children * fm['male'], 'female': children * fm['female']}}
 
 			next_year = self.years[0] + num
-			log.info('{} - {} number of people.'.format(next_year, int(sum(union_count_genders(v) for v in for_prediction.values()))))
+			# log.info('{} - {} number of people.'.format(next_year, int(sum(union_count_genders(v) for v in for_prediction.values()))))
 			data[next_year] = [int(children)]
 			for interval in sorted(factors):
 				new_data[interval + 1] = new_interval(for_prediction[interval], factors[interval])
@@ -274,7 +273,7 @@ if __name__ == '__main__':
 
 	plot = Plot(main)
 	# plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
-	# plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
+	plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
 	# plot.draw_compare('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
 	#                   "Кол-во населения")
 	plot.draw_factors_new("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")

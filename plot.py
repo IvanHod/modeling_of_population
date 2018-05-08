@@ -75,16 +75,12 @@ class Plot:
 			plt.clf()
 
 	def draw_compare_with_interval(self, folder: str, title: str, x_label: str, y_label: str):
-		for year in range(2100, 2101, 100):
+		for year in range(2020, 2021, 20):
 			log.info('Render the plot for {} year...'.format(year))
 			ax = plt.subplot()
-			# x, y = [], []
-			# for interval in sorted(self.main.prediction[year].keys(), key=lambda k: int(k.split('-')[0])):
-			# 	x.append(int(interval.split('-')[0]))
-			# 	y.append(union_count_genders(self.main.prediction[year][interval]))
-			# ax.plot(x, y, 'g', label='Прогнозирование по году с интервалом в 5 лет')
-
 			x, y = [], []
+			log.info('{} - {} number of people in prediction.'
+			         .format(year, int(sum(union_count_genders(v) for v in self.main.interval_prediction[year].values()))))
 			for interval in self.main.interval_prediction[year].keys():
 				x.append(int(interval))
 				y.append(union_count_genders(self.main.interval_prediction[year][interval]))
@@ -100,6 +96,8 @@ class Plot:
 				if year < 2051:
 					x, y = [], []
 					xml_data = self.main.data_helper.get_prediction(year)[year]
+					log.info('{} - {} number of people in xls .'
+					         .format(year, int(sum(union_count_genders(v) for v in xml_data.values()))))
 					for interval in sorted(xml_data.keys(), key=lambda k: int(k.split('-')[0])):
 						x.append(int(interval.split('-')[0]))
 						y.append(union_count_genders(xml_data[interval]))
@@ -117,8 +115,8 @@ class Plot:
 			plt.grid()
 			plt.legend(loc='best')
 			Plot.set_labels(title.format(year), x_label, y_label)
-			plt.show()
-			# plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
+			# plt.show()
+			plt.savefig('plots/{}/fig-{}.png'.format(folder, year))
 			plt.clf()
 
 	def draw_year(self, year):
