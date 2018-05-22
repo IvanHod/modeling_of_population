@@ -35,6 +35,16 @@ def get_number_middle_female_year(year, delimiter=None):
 	return count_woman
 
 
+def get_number_middle_female(year, delimiter=None):
+	count_woman = 0
+	for rn in range(20, 40, 5):
+		interval = '{}-{}'.format(rn, rn + 4)
+		count_woman += year[interval]['female']
+	if delimiter:
+		count_woman /= delimiter
+	return count_woman
+
+
 # надо сделать разделение по полу
 def interpolate_intervals(x, interval_1, interval_2):
 	f_p = union_count_genders(interval_1)
@@ -58,13 +68,3 @@ def split_interval(interval: dict) -> dict:
 			for age in range(rn[0], rn[1] + 1):
 				result[age] = {'male': male, 'female': female}
 	return result
-
-
-def get_number_middle_female(year, delimiter=None):
-	count_woman = 0
-	for rn in range(20, 40, 5):
-		interval = '{}-{}'.format(rn, rn + 4)
-		count_woman += year[interval]['female']
-	if delimiter:
-		count_woman /= delimiter
-	return count_woman

@@ -17,9 +17,11 @@ class DataHelper:
 		self.country = country
 		self.years = years
 
-	def get_init_data(self):
+	def get_init_data(self, years=None):
+		if not years:
+			years = self.years
 		data = {}
-		for year in self.years:
+		for year in years:
 			data[year] = {}
 		return data
 
@@ -34,20 +36,21 @@ class DataHelper:
 		f.close()
 		return data_popup
 
-	def read_xls(self):
+	def read_xls(self, years):
 		log.info('Reading of xls file: {}'.format(self.xls_file))
 		f = xlrd.open_workbook(self.xls_file)
 
-		male = self.read_xls_sheet(f, 'male')
-		female = self.read_xls_sheet(f, 'female')
+		male = self.read_xls_sheet(f, 'male', years=years)
+		female = self.read_xls_sheet(f, 'female', years=years)
 
-		data_popup = self.get_init_data()
-		for row_num in range(len(self.years)):
+		data_popup = self.get_init_data(years)
+		for row_num in range(len(years)):
 			year = int(male[row_num][5])
 			age = 0
 			for column in range(6, len(male[row_num])):
-				el = {'male': male[row_num][column], 'female': female[row_num][column]}
-				data_popup[year]['{}-{}'.format(age, age + 4)] = el
+				if male[row_num][column] != '-' and female[row_num][column] != '-':
+					el = {'male': male[row_num][column], 'female': female[row_num][column]}
+					data_popup[year]['{}-{}'.format(age, age + 4)] = el
 				age += 5
 
 		return data_popup

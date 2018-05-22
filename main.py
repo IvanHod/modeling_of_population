@@ -5,6 +5,9 @@ from data_helper import DataHelper
 from tools import *
 from plot import Plot
 import math
+from SALib.sample import saltelli
+from SALib.analyze import sobol
+import numpy as np
 
 
 class Main:
@@ -127,7 +130,8 @@ class Main:
 
 				for interval in sorted(factors, key=lambda k: int(k.split('-')[0])):
 					next_interval = get_next_interval(interval)
-					new_data[next_interval] = new_interval(last_year[interval], factors[interval], last_year[next_interval])
+					new_data[next_interval] = new_interval(last_year[interval], factors[interval],
+					                                       last_year[next_interval])
 
 				last_year = new_data
 
@@ -170,7 +174,8 @@ class Main:
 		prediction_data_by_an_interval = self.modeling_by_1_interval_1(prediction_data_by_an_interval)
 
 		if write_xls:
-			self.data_helper.write_to_xls(titles, prediction_data_by_5, prediction_data_by_year, prediction_data_by_an_interval)
+			self.data_helper.write_to_xls(titles, prediction_data_by_5, prediction_data_by_year,
+			                              prediction_data_by_an_interval)
 
 	def modeling_by_5(self, data):
 		log.info('Calculating for 5 years...')
@@ -217,28 +222,27 @@ class Main:
 			self.prediction[next_year] = new_data
 			for_prediction = new_data
 
-			# if next_year % 5 == 0:
-			# 	prediction = self.big_prediction[next_year + 5]
-			# 	self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
+		# if next_year % 5 == 0:
+		# 	prediction = self.big_prediction[next_year + 5]
+		# 	self.corrected_factors_by_year(count=6, initial_year=new_data, data_last_year=prediction)
 
 		return data
 
-	def modeling_by_1_interval_1(self, data: dict)->dict:
+	def modeling_by_1_interval_1(self, data: dict) -> dict:
 		log.info('Calculating for an year and an year interval...')
 		self.factor_history[1], start_year = [], 2000
 		initial_year = {start_year: split_interval(self.data[start_year])}
 
-		# factors, ff = {}, self.female_factor['general'] / 5
-		factors, ff = {}, (self.female_factor['general'] * 2 / 1.325) / 5
+		# factors, ff = {}, (self.female_factor['general'] * 2 / 1.325) / 5
+		factors, ff = {}, self.female_factor['general'] / 5
+
+		# prepare
 		for interval in sorted(self.factors, key=lambda k: int(k.split('-')[0])):
 			start = int(interval.split('-')[0])
 			value = min(math.pow(self.factors[interval], 1 / 5), 1.0)
 			for i in range(5):
 				factors[start + i] = value
-		self.factor_history[1].append({
-			'female': ff,
-			'factors': factors.copy()
-		})
+		self.factor_history[1].append({'female': ff, 'factors': factors.copy()})
 
 		for_prediction, fm = initial_year[start_year], self.female_factor
 		for num in range(1, 501, 1):
@@ -246,10 +250,9 @@ class Main:
 				log.info('Calculating for an year and an interval in {} iteration...'.format(num))
 
 			children = ff * get_number_middle_female_year(for_prediction)
-			new_data = {0: {'male': children * fm['male'], 'female': children * fm['female']}}
+			new_data = {0: {'male': children * fm['male'], 'female': children - children * fm['male']}}
 
 			next_year = self.years[0] + num
-			# log.info('{} - {} number of people.'.format(next_year, int(sum(union_count_genders(v) for v in for_prediction.values()))))
 			data[next_year] = [int(children)]
 			for interval in sorted(factors):
 				new_data[interval + 1] = new_interval(for_prediction[interval], factors[interval])
@@ -257,8 +260,61 @@ class Main:
 
 			self.interval_prediction[next_year] = new_data
 			for_prediction = new_data
-			
+
 		return data
+
+	def sensitivity_analysis(self):
+		female, relation, factors = self.sensitivity_analysis_detect_intervals()
+		factors_names = list(sorted(map(lambda k: 'factor_{}'.format(k), factors), key=lambda k: int(k[7])))
+		problem = {
+			'num_vars': len(factors) + 2,
+			'names': ['female', 'relation'] + factors_names,
+			'bounds': [[female['min'], female['max']],
+			           [relation['min'], relation['max']]]
+			          + list(map(lambda k: [factors[k]['min'], factors[k]['max']], sorted(factors.keys())))
+		}
+
+		param_values = saltelli.sample(problem, 1000)
+		print(1)
+
+	def sensitivity_analysis_evaluate(self, param_values):
+		Y = []
+		for params in param_values:
+			female, relation, factor_0, factor_15, factor_30, factor_45, factor_60, factor_75, factor_90 = params
+			res = self.sensitivity_analysis_model(female, relation, factor_0, factor_15, factor_30, factor_45, factor_60, factor_75, factor_90)
+			Y.append(res)
+		return np.array(Y)
+
+	def sensitivity_analysis_model(self, female, relation, factor_0, factor_15, factor_30, factor_45, factor_60, factor_75, factor_90):
+		return 1
+
+	def sensitivity_analysis_detect_intervals(self):
+		data = self.data_helper.read_xls(range(1950, 2006, 5))
+		max_interval, step = 100, 15
+		female, relation, factors = {'min': 1, 'max': 0}, {'min': 1, 'max': 0}, {}
+		for interval in range(0, max_interval, step):
+			factors[interval] = {'min': 1, 'max': 0}
+		for year in data:
+			next_year, year_data = year + 5, data[year]
+			new_relation = year_data['0-4']['male'] / union_count_genders(year_data['0-4'])
+			relation['min'] = min(relation['min'], new_relation)
+			relation['max'] = min(1.0, max(relation['max'], new_relation))
+
+			if next_year in data:
+				next_year_data = data[next_year]
+
+				new_female = union_count_genders(next_year_data['0-4']) / get_number_middle_female(year_data)
+				female['min'] = min(female['min'], new_female)
+				female['max'] = min(1.0, max(female['max'], new_female))
+
+				for i in range(0, max_interval, step):
+					interval = '{}-{}'.format(i, i + 4)
+					if get_next_interval(interval) in next_year_data and interval in year_data:
+						new_factor = union_count_genders(next_year_data[get_next_interval(interval)]) \
+						             / union_count_genders(year_data[interval])
+						factors[i]['min'] = min(factors[i]['min'], new_factor)
+						factors[i]['max'] = min(1.0, max(factors[i]['max'], new_factor))
+		return female, relation, factors
 
 
 if __name__ == '__main__':
@@ -268,16 +324,17 @@ if __name__ == '__main__':
 	main = Main()
 	main.read_data()
 	main.calculate(from_file=False)
+	main.sensitivity_analysis()
 
-	folder = 'mixed'
-
-	plot = Plot(main)
-	# plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
-	plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
-	# plot.draw_compare('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
-	#                   "Кол-во населения")
-	plot.draw_factors_new("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
-	plot.draw_compare_with_interval('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
-	                  "Кол-во населения")
+	# folder = 'mixed'
+	#
+	# # plot = Plot(main)
+	# # # plot.draw_factors("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
+	# # plot.draw_by_year("График населения", "Возрастные интервалы", "Кол-во населения")
+	# # # plot.draw_compare('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
+	# # #                   "Кол-во населения")
+	# # plot.draw_factors_new("Коэффициенты \"выживаемости\"", "Возрастные интервалы", "Коэффициэнты")
+	# # plot.draw_compare_with_interval('{}_by_interval'.format(folder), "График населения на {}", "Возрастные интервалы",
+	# #                   "Кол-во населения")
 
 	sys.exit()
