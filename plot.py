@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from tools import *
 import logging as log
+import numpy as np
 
 
 class Plot:
@@ -146,6 +147,18 @@ class Plot:
 		for xi in x:
 			y.append(int(predictions[xi]['male'] + predictions[xi]['female']))
 		plt.plot(x, y, '-o')
+		plt.show()
+
+	def draw_uncertainty_analysis(self, values):
+		x = sorted(values.keys())
+		mins, maxs, average = [], [], []
+		for year in sorted(values.keys()):
+			mins.append(min(values[year]))
+			maxs.append(max(values[year]))
+			average.append(np.mean(values[year]))
+		plt.plot(x, mins, '--', color='g')
+		plt.plot(x, maxs, '--', color='g')
+		plt.plot(x, average, '-', color='r')
 		plt.show()
 
 	def convert_to_plt(self, array, year):
