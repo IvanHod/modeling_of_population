@@ -156,9 +156,10 @@ class Plot:
 			mins.append(min(values[year]))
 			maxs.append(max(values[year]))
 			average.append(np.mean(values[year]))
-		plt.plot(x, mins, '--', color='g')
+		plt.plot(x, mins, '--', color='g', label='Граничные значения')
 		plt.plot(x, maxs, '--', color='g')
-		plt.plot(x, average, '-', color='r')
+		plt.plot(x, average, '-', color='r', label='Средние значения')
+		plt.legend()
 		plt.show()
 
 	def convert_to_plt(self, array, year):

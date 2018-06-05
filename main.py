@@ -193,7 +193,7 @@ class Main:
 			          + list(map(lambda k: [factors[k]['min'], factors[k]['max']], sorted(factors.keys())))
 		}
 
-		param_values = saltelli.sample(problem, 50)
+		param_values = saltelli.sample(problem, 100)
 		for year in [2010, 2020, 2050, 2100]:
 			Y = self.sensitivity_analysis_evaluate(param_values, year)
 
@@ -224,7 +224,9 @@ class Main:
 		return s
 
 	def sensitivity_analysis_detect_intervals(self, ages):
-		data = self.data_helper.read_xls(range(1950, 2006, 5))
+		rng = range(1950, 2006, 5)
+		# rng = range(1995, 2006, 5)
+		data = self.data_helper.read_xls(rng)
 		female, relation, factors = {'min': 1, 'max': 0}, {'min': 1, 'max': 0}, {}
 		for interval in ages:
 			factors[interval] = {'min': 1, 'max': 0}
@@ -251,34 +253,32 @@ class Main:
 
 		# transform factors by 1 year
 		year_factors = {}
-		female['max'] = female['max'] / 5
+		# female['max'] = (female['max'] / 5) - 0.007
+		female['max'] = (female['max'] / 5)
 		female['min'] = female['min'] / 5
-		# female['min'] = female['max'] - .001
 		for year in factors:
 			year_factors[year] = {
 				'max': min(math.pow(factors[year]['max'], 1 / 5), 1.0),
 				'min': min(math.pow(factors[year]['min'], 1 / 5), 1.0)
 			}
+		print('................detected factors................')
+		print(female)
+		print(relation)
+		print(year_factors)
+		print('................detected factors................')
 		return female, relation, year_factors
 
 	def uncertainty_analysis(self):
 		female, relation, f = self.sensitivity_analysis_detect_intervals([15, 40, 90])
-		d_female, d_relation = (female['max'] - female['min']) / 2, (relation['max'] - relation['min']) / 2
-		df1, df2, df3 = (f[15]['max'] - f[15]['min']) / 2, (f[40]['max'] - f[40]['min']) / 2, (f[90]['max'] - f[90]['min']) / 2
-
-		mu_female, s_female = female['min'] + d_female, d_female
-		# mu_female, s_female = female['min'] + d_female, 0.0001
-		mu_relation, s_relation = relation['min'] + d_relation, d_relation
-		mu_f1, s_f1, mu_f2, s_f2, mu_f3, s_f3 = f[15]['min'] + df1, df1, f[40]['min'] + df2, df2, f[90]['min'] + df3, df3
 		values = {}
 		for year in range(2001, 2100):
 			values[year] = []
-		for i in range(100):
-			self.female_factor_by_year = random.gauss(mu_female, s_female)
-			self.female_factor['male'] = random.normalvariate(mu_relation, s_relation)
-			self.factors_by_year[15] = random.normalvariate(mu_f1, s_f1)
-			self.factors_by_year[40] = random.normalvariate(mu_f2, s_f2)
-			self.factors_by_year[90] = random.normalvariate(mu_f3, s_f3)
+		for i in range(1000):
+			self.female_factor_by_year = random.uniform(female['min'], female['max'])
+			self.female_factor['male'] = random.uniform(relation['min'], relation['max'])
+			self.factors_by_year[15] = random.uniform(f[15]['min'], f[15]['max'])
+			self.factors_by_year[40] = random.uniform(f[40]['min'], f[40]['max'])
+			self.factors_by_year[90] = random.uniform(f[90]['min'], f[90]['max'])
 
 			data = {}
 			self.modeling_by_1(data)
@@ -286,6 +286,7 @@ class Main:
 				s = sum(map(lambda kv: union_count_genders(kv[1]), self.interval_prediction[year].items()))
 				values[year].append(s)
 		plot = Plot(main)
+		plot.set_labels('Анализ неопределенности', 'Год', 'Популяция')
 		plot.draw_uncertainty_analysis(values)
 
 
